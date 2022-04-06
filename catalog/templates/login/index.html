@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>LogIn</title>
+	 {% load static %}
+	<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+	<link rel="shortcut icon" href="{% static 'image/favicon.png' %}">
+</head>
+
+<body>
+	<div class="lowin">
+		<div class="lowin-brand">
+			<img src="{% static 'image/kodinger.jpg' %}" alt="logo">
+		</div>
+		<div class="lowin-wrapper">
+			<div class="lowin-box lowin-login">
+				<div class="lowin-box-inner">
+					<form method="post">
+						<p>Sign In</p>
+						<div class="lowin-group">
+							<label>Account </label>
+							<input type="account" autocomplete="login_account" name="login_account" class="lowin-input">
+						</div>
+						<div class="lowin-group password-group">
+							<label>Password </label>
+							<input id="sign_in_pwd" type="password" name="login_password" autocomplete="login_password" class="lowin-input">
+						</div>
+						<button class="lowin-btn login-btn">
+							Sign In
+						</button>
+
+						<div class="text-foot">
+							Don't have an account? <a href="sign-up" class="register-link">Sign Up</a>
+						</div>
+						<script>
+    						{% if messages %}
+        						{% for msg in messages %}
+            						alert('{{ msg.message }}');
+        						{% endfor %}
+    						{% endif %}
+						</script>
+					</form>
+				</div>
+			</div>
+
+		</div>
+	
+	</div>
+
+	<script src="{% static 'js/auth.js' %}"></script>
+	<script>
+		Auth.init({
+			login_url: '#login',
+			forgot_url: '#forgot'
+		});
+	</script>
+<style>
+.copyrights{text-indent:-9999px;height:0;line-height:0;font-size:0;overflow:hidden;}
+</style>
+</body>
+</html>
