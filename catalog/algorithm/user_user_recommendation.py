@@ -1,36 +1,48 @@
-from collections import defaultdict
+import os
+import django
+import pandas as pd
+from surprise import Dataset, Reader
+from surprise import KNNWithMeans
 
-from surprise import SVD
-from surprise import Dataset
-
-
-def get_top_n(predictions, n=10):
-
-    # 首先将预测值映射至每个用户
-    top_n = defaultdict(list)
-    for uid, iid, true_r, est, _ in predictions:
-        top_n[uid].append((iid, est))
-
-    # Then sort the predictions for each user and retrieve the k highest ones.
-    for uid, user_ratings in top_n.items():
-        user_ratings.sort(key=lambda x: x[1], reverse=True)
-        top_n[uid] = user_ratings[:n]
-
-    return top_n
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'localMovie.settings')
+django.setup()
+from catalog.models import UserRate
 
 
-# First train an SVD algorithm on the movielens dataset.
-data = Dataset.load_builtin('ml-100k')
-trainset = data.build_full_trainset()
-algo = SVD()
-algo.fit(trainset)
+def get_top_n(algo, n=50):
+    users = UserRate.objects.values_list('user', flat=True).distinct()
+    movies = UserRate.objects.values_list('movie', flat=True).distinct()
+    for user in users:
+        records = UserRate.objects.filter(user=user).values_list('movie_id', flat=True)
+        tmp_res = []
+        for movie in movies:
+            if movie in records:
+                continue
+            try:
+                pred, _ = algo.estimate(u=algo.trainset.to_inner_uid(user), i=algo.trainset.to_inner_iid(movie))
+            except:
+                print(user, movie)
+            tmp_res.append((movie, pred))
+        tmp_res.sort(key=lambda x: x[1], reverse=True)
+        print(tmp_res)
 
-# Then predict ratings for all pairs (u, i) that are NOT in the training set.
-testset = trainset.build_anti_testset()
-predictions = algo.test(testset)
 
-top_n = get_top_n(predictions, n=10)
+def get_recommend():
+    """
+    获取用户电影推荐信息，存入redis中
+    """
+    # 导入数据
+    reader = Reader(rating_scale=(1, 5))
+    user_rate = pd.DataFrame(UserRate.objects.values())
+    data = Dataset.load_from_df(df=user_rate[['user_id', 'movie_id', 'rate']], reader=reader)
 
-# Print the recommended items for each user
-for uid, user_ratings in top_n.items():
-    print(uid, [iid for (iid, _) in user_ratings])
+    # 训练
+    trainset = data.build_full_trainset()
+    algo = KNNWithMeans()
+    algo.fit(trainset)
+
+    # 预测并存入redis
+    get_top_n(algo, 50)
+    pass
+
+get_recommend()

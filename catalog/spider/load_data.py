@@ -4,8 +4,13 @@ import requests
 import time
 import csv
 import json
+import os
+import django
 from bs4 import BeautifulSoup
-from urllib.request import urlretrieve
+# from urllib.request import urlretrieve
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'localMovie.settings')
+django.setup()
+from catalog.models import Movie
 
 url_top250 = [
         'https://movie.douban.com/top250',
@@ -21,14 +26,17 @@ url_top250 = [
 ]
 
 headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2"
+    "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36"
+}
+cookies = {
+    "cookie": "bid=p3-BYv-dPdk; ll=\"108304\"; push_noty_num=0; push_doumail_num=0; douban-fav-remind=1; __gads=ID=7652455ee9cd37f8-2262d3cb15d100a6:T=1647777132:RT=1647777132:S=ALNI_MavdzmL299fqlBb-yHKdPQhoX_0xQ; __utmv=30149280.25498; _ga=GA1.2.1995445140.1647777134; _gid=GA1.2.643440456.1650353372; __utmz=30149280.1650353447.20.10.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); _pk_ref.100001.2fad=%5B%22%22%2C%22%22%2C1650437179%2C%22https%3A%2F%2Fsec.douban.com%2F%22%5D; _pk_id.100001.2fad=b3fdeb726be583cf.1647864638.5.1650437179.1650357265.; ap_v=0,6.0; __utma=30149280.1995445140.1647777134.1650353447.1650521293.21; __utmb=30149280.0.10.1650521293; __utmc=30149280; apiKey=; curren_area_code=+86; curren_phone=15538009337; dbcl2=\"254988002:12DwC5aq2gA\"; isNoPwd=true; code=9483; ck=z1HW"
 }
 fieldnames = ['评分', '制片国家/地区', '编剧', '片长', '评论人数', '导演', '类型', '又名', '语言', 'IMDb', '上映日期', '片名', '主演']
 
 
 def load_img(img_url, name):
-    urlretrieve(img_url, '../static/image/' + name + '.jpg')
-
+    # urlretrieve(img_url, '../static/image/' + name + '.jpg')
+    return
 
 # 把列表切割成字典
 def parse_text(info):
@@ -134,7 +142,34 @@ def load_hot():
         write_csv("movie_data(thailand" + str(i + 1) + ").csv", movie_lists)
 
 
-load_hot()
+def add_records():
+    movies = Movie.objects.all()
+    total = 0
+    for movie in movies:
+        total += 1
+        if total <= 13767:
+            continue
+        response = requests.get(
+            "https://movie.douban.com/subject/" + str(movie.movie_id), headers=headers, cookies=cookies)
+        data = response.text
+        soup = BeautifulSoup(data, "html5lib")
+        detail = soup.find("div", id="subject-header-container")
+        if detail is None:
+            time.sleep(2)
+            continue
+        detail = detail.find("a", class_="sub-cover")
+        # 电影图片url
+        img_url = detail.find("img").get("src")
+        print(total, img_url)
+        movie.movie_url = img_url
+        try:
+            movie.save()
+        except ValueError as err:
+            print(err)
+        time.sleep(2)
+
+add_records()
+
 # file = open("movie_data(korea).csv", 'r', encoding='utf-8')
 # while True:
 #     text = file.readline()  # 只读取一行内容

@@ -1,15 +1,15 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Movie, User, UserRate, UserTag, WouldLikeList, HaveWatchedList, Ban
+from .models import Movie, User, UserRate, UserTag, WouldLikeList, HaveWatchedList
 
 admin.site.site_header = '老王电影推荐'
 admin.site.index_title = '欢迎使用老王电影推荐'
 
 
 class MovieAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'type', 'country', 'score', 'rate_num']
-    list_filter = ['country']
+    list_display = ['id', 'name', 'type', 'country', 'score', 'rate_num', 'implicit_score']
+    list_filter = ['score']
     search_fields = ['id', 'name']
 
 
@@ -18,7 +18,6 @@ admin.site.register(Movie, MovieAdmin)
 
 class UserAdmin(admin.ModelAdmin):
     list_display = ['id', 'nick_name', 'phone', 'age', 'sex', 'profession']
-    list_filter = ['sex']
     search_fields = ['id', 'account', 'nick_name']
 
 
@@ -26,7 +25,7 @@ admin.site.register(User, UserAdmin)
 
 
 class UserTagAdmin(admin.ModelAdmin):
-    list_display = ['user', 'movie', 'tag', 'tag_time']
+    list_display = ['user', 'movie', 'tag', 'tag_time', 'votes']
     search_fields = ['user__nick_name', 'movie__name']
 
 
@@ -57,10 +56,3 @@ class HaveWatchedListAdmin(admin.ModelAdmin):
 admin.site.register(HaveWatchedList, HaveWatchedListAdmin)
 
 
-class BanAdmin(admin.ModelAdmin):
-    list_display = ['user', 'reason', 'start_time', 'end_time']
-    list_filter = ['start_time', 'end_time']
-    search_fields = ['user__nick_name']
-
-
-admin.site.register(Ban, BanAdmin)
