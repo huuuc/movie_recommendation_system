@@ -1,12 +1,13 @@
 import os
 import django
+import numpy as np
 import pandas as pd
 from surprise import Dataset, Reader
 from surprise import KNNWithMeans
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'localMovie.settings')
 django.setup()
-from catalog.models import UserRate
+from catalog.models import UserRate, MovieAttributes
 
 
 def get_top_n(algo, n=50):
@@ -45,4 +46,23 @@ def get_recommend():
     get_top_n(algo, 50)
     pass
 
-get_recommend()
+
+attrs = ['plot', 'comedy', 'action', 'romance', 'sci_fi', 'animation', 'suspense',
+             'thriller', 'fear', 'documentary', 'short', 'erotica', 'homosexual', 'music',
+             'musical', 'family', 'children', 'biography', 'history', 'war', 'crime',
+             'western', 'fantasy', 'adventure', 'disaster', 'martial', 'costume']
+
+
+def compute_movie_types():
+    movies = MovieAttributes.objects.all()
+    counts = np.zeros(len(movies))
+    for attr in attrs:
+        counts += movies.values_list(attr, flat=True)
+    index = 0
+    for movie in movies:
+        movie.sum_types = counts[index]
+        movie.save()
+        index += 1
+
+
+compute_movie_types()

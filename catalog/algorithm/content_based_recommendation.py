@@ -1,7 +1,11 @@
 from surprise import AlgoBase
 from surprise import PredictionImpossible
 import numpy as np
-
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'localMovie.settings')
+django.setup()
+from catalog.models import UserAttributes, MovieAttributes
 from six import iteritems
 
 
@@ -38,50 +42,38 @@ class ContentBased(SymmetricAlgo):
 
         SymmetricAlgo.__init__(self, sim_options=sim_options,
                                verbose=verbose, **kwargs)
+        self.attrs = sim_options['attrs']
 
     def fit(self, trainset):
         print("start fit...")
         SymmetricAlgo.fit(self, trainset)
-        self.attr_raw_matrix = np.loadtxt("attr_matrix.csv", delimiter=",")
         self.means = np.zeros(self.n_x)
-        self.attr_matrix = np.zeros((self.n_x, 19))
-        total_matrix = np.zeros((self.n_x, 19))
         for x, ratings in iteritems(self.xr):
             for (movie_id, r) in ratings:
                 self.means[x] += r
-                raw_movie_id = trainset.to_raw_iid(movie_id)
-                movie_attr = self.attr_raw_matrix[int(raw_movie_id) - 1]
-                self.attr_matrix[x] += r * movie_attr
-                total_matrix[x] += movie_attr
             self.means[x] /= len(ratings)
-        total_matrix = np.maximum(total_matrix, 1)
-        self.attr_matrix /= total_matrix
+
         print("end fit...")
         return self
 
-    def estimate(self, u, i):
+    def get_means(self, u):
+        return self.means[self.trainset.to_inner_uid(u)]
 
-        if not (self.trainset.knows_user(u) and self.trainset.knows_item(i)):
-            raise PredictionImpossible('User and/or item is unknown.')
+    def estimate(self, u, user_attrs, movies_attrs):
+        mean = self.get_means(u)
 
-        sum_est = 0
-        sum_res = 0
+        sum_res = np.zeros(len(movies_attrs))
+        movies_id = np.array(movies_attrs.values_list('movie', flat=True))
+        for attr in self.attrs:
+            user_attr = float(user_attrs[attr])
+            if user_attr == 0:
+                user_attr = mean
+            attr_list = np.array(movies_attrs.values_list(attr, flat=True))
+            sum_res = sum_res + attr_list * user_attr
 
-        raw_movie_id = self.trainset.to_raw_iid(i)
-        movie_attr = self.attr_raw_matrix[int(raw_movie_id) - 1]
+        sum_types = np.array(movies_attrs.values_list('sum_types', flat=True))
+        score = sum_res / sum_types
 
-        for attr_index in range(len(movie_attr)):
-            if movie_attr[attr_index] == 1:
-                if self.attr_matrix[u][attr_index] == 0:
-                    sum_est += self.means[u]
-                else:
-                    sum_est += self.attr_matrix[u][attr_index]
-                sum_res += 1
+        est = list(zip(movies_id, score))
 
-        if sum_res == 0:
-            return 0, {'actual_k': sum_res}
-
-        est = sum_est / sum_res
-
-        details = {'actual_k': sum_res}
-        return est, details
+        return est

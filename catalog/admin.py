@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Movie, User, UserRate, UserTag, WouldLikeList, HaveWatchedList
+from .models import Movie, User, UserRate, UserTag, WouldLikeList, HaveWatchedList, MovieAttributes, UserAttributes
 
 admin.site.site_header = '老王电影推荐'
 admin.site.index_title = '欢迎使用老王电影推荐'
@@ -54,5 +54,27 @@ class HaveWatchedListAdmin(admin.ModelAdmin):
 
 
 admin.site.register(HaveWatchedList, HaveWatchedListAdmin)
+
+
+class MovieAttributesAdmin(admin.ModelAdmin):
+    list_display = ['movie', 'plot', 'comedy', 'action', 'romance', 'animation', 'sci_fi', 'suspense',
+             'thriller', 'fear', 'documentary', 'short', 'erotica', 'homosexual', 'music',
+             'musical', 'family', 'children', 'biography', 'history', 'war', 'crime',
+             'western', 'fantasy', 'adventure', 'disaster', 'martial', 'costume', 'sum_types']
+    search_fields = ['movie__name']
+
+
+admin.site.register(MovieAttributes, MovieAttributesAdmin)
+
+
+class UserAttributesAdmin(admin.ModelAdmin):
+    list_display = ['user', 'plot', 'comedy', 'action', 'romance', 'animation', 'sci_fi', 'suspense',
+             'thriller', 'fear', 'documentary', 'short', 'erotica', 'homosexual', 'music',
+             'musical', 'family', 'children', 'biography', 'history', 'war', 'crime',
+             'western', 'fantasy', 'adventure', 'disaster', 'martial', 'costume']
+    search_fields = ['user__nick_name']
+
+
+admin.site.register(UserAttributes, UserAttributesAdmin)
 
 
